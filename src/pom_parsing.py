@@ -22,7 +22,7 @@ def parse_maven_module_from_pom(pom_path):
     if not artifact_id:
         raise Exception('Missing artifactId')
 
-    #maven_module = NewMavenModule(pom_path, group_id, artifact_id)
+    # maven_module = NewMavenModule(pom_path, group_id, artifact_id)
 
     # parent_group_id, parent_artifact_id = parse_parent_artifact_ids_from_project_node(pom.getroot())
     # if(not parent_artifact_id is None):
@@ -37,6 +37,11 @@ def parse_maven_module_from_pom(pom_path):
 
 
 def parse_sub_modules(pom_path):
+    """
+    Given a pom.xml path, parses the xml and extracts the modules.
+    :param pom_path: The path to the pom.xm lfile.
+    :return: Yields the modules as MavenModule instances.
+    """
     pom = xml.parse(pom_path)
     for sub_module in pom.findall('mvn:modules/mvn:module', MAVEN_NAMESPACES):
         sub_pom_path = os.path.join(os.path.dirname(pom_path), sub_module.text, 'pom.xml')
@@ -52,7 +57,7 @@ def build_dependencies_from_pom_path(pom_path):#, maven_home):
     pom = xml.parse(pom_path)
     dependency_nodes = pom.findall('mvn:dependencies/mvn:dependency', MAVEN_NAMESPACES)
     for dependency_node in dependency_nodes:
-        dep_group_id, dep_artifact_id, version = parse_id_from_node(dependency_node)
+        dep_group_id, dep_artifact_id = parse_artifact_ids_from_node(dependency_node)
         yield  dep_group_id, dep_artifact_id
     # # These dependency nodes may lack versions, so we'll compute the effective pom for this
     # mvn = os.path.join(maven_home, "bin/mvn")
@@ -76,27 +81,34 @@ def parse_artifact_ids_from_pom(pom):
 
     group_id, artifact_id = parse_artifact_ids_from_node(project_node)
 
-    if(group_id is None):
+    if not group_id:
         parent_group_id, parent_artifact_id = parse_parent_artifact_ids_from_project_node(project_node)
         group_id = parent_group_id
     return group_id, artifact_id
 
 
 def parse_parent_artifact_ids_from_project_node(project_node):
-    for parent_node in project_node.findall('mvn:parent', MAVEN_NAMESPACES):
-        return parse_artifact_ids_from_node(parent_node)
+    """
+    Retrieves the (groupId, artifactId) from the project node.
+    :param project_node: The parsed xml project node.
+    :return: (groupId, artifactId) of (None, None).
+    """
+    parent_nodes = project_node.findall('mvn:parent', MAVEN_NAMESPACES)
+    assert(len(parent_nodes) in (0, 1))
+    for parent_node in parent_nodes:
+        group_id, artifact_id = parse_artifact_ids_from_node(parent_node)
+        if group_id and artifact_id:
+            return group_id, artifact_id
     return None, None
 
 
 def parse_artifact_ids_from_node(node):
+    """
+    Given a parsed xml node, retrieves the (groupId, artifactId) information.
+    :param node: The parsed xml node.
+    :return: (groupId, artifactId)
+    """
     return get_child_node_value(node, 'groupId'), get_child_node_value(node, 'artifactId')
-
-
-def parse_id_from_node(node):
-    group_id = get_child_node_value(node, "groupId")
-    artifact_id = get_child_node_value(node, "artifactId")
-    version = get_child_node_value(node, "version")
-    return group_id, artifact_id, version
 
 
 def get_child_node_value(parent_node, child_node_name):

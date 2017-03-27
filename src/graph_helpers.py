@@ -46,9 +46,6 @@ class DependencyGraphBuilder(GraphBuilder):
         super(DependencyGraphBuilder, self).__init__(graph, nodes_store)
 
     def add_edges(self, maven_module):
-        return self.add_dependency_edges(maven_module)
-
-    def add_dependency_edges(self, maven_module):
         maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
 
         for dependency_module in maven_module.dependencies:
@@ -64,9 +61,6 @@ class ModuleGraphBuilder(GraphBuilder):
         super(ModuleGraphBuilder, self).__init__(graph, nodes_store)
 
     def add_edges(self, maven_module):
-        return self.add_modules_edges(maven_module)
-
-    def add_modules_edges(self, maven_module):
         maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
 
         for sub_module in maven_module.sub_modules:
@@ -81,13 +75,12 @@ class ParentEdgeBuilder(GraphBuilder):
     def __init__(self, graph, nodes_store):
         super(ParentEdgeBuilder, self).__init__(graph, nodes_store)
 
-    def build_graph(self, maven_modules):
-        for maven_module in maven_modules:
-            if maven_module.parent is None:
-                continue
+    def add_edges(self, maven_module):
+        if not maven_module.parent:
+            return
 
-            maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
-            parent_module_node = self.nodes_store.get_maven_module_node(maven_module.parent)
+        maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
+        parent_module_node = self.nodes_store.get_maven_module_node(maven_module.parent)
 
-            edge = self.graph.add_edge(maven_module_node, parent_module_node, directed = True)
-            GraphBuilder.add_attribute(edge, "parent")
+        edge = self.graph.add_edge(maven_module_node, parent_module_node, directed = True)
+        GraphBuilder.add_attribute(edge, "parent")
