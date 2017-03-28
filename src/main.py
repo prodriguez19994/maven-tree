@@ -1,7 +1,7 @@
 import argparse
 import os
 
-import pygraphml
+import networkx
 
 from maven_module import MavenModule
 from graph_helpers import NodesStore, DependencyGraphBuilder, ParentEdgeBuilder, ModuleGraphBuilder
@@ -15,8 +15,7 @@ def write_graph(graph, graph_output_path):
     :param graph_output_path: The output file.
     :return: None
     """
-    pygraphml.GraphMLParser().write(graph, graph_output_path)
-
+    networkx.write_gexf(graph, graph_output_path)
 
 def find_maven_modules(pom_root_paths):
     """
@@ -43,7 +42,7 @@ def main(args):
     """
     maven_modules = find_maven_modules(args.maven_module_paths)
 
-    graph = pygraphml.Graph()
+    graph = networkx.DiGraph()
     nodes_store = NodesStore(graph)
 
     DependencyGraphBuilder(graph, nodes_store).build_graph(maven_modules)

@@ -1,8 +1,7 @@
-#!/usr/bin/python2
-
 from xml.etree import ElementTree as xml
 
-from pom_parsing import build_dependencies_from_pom_path, parse_sub_modules, parse_parent_artifact_ids_from_project_node
+from pom_parsing import build_dependencies_from_pom_path, parse_sub_modules, parse_parent_artifact_ids_from_project_node, \
+    parse_packaging_from_project_node
 
 
 class MavenModule(object):
@@ -29,6 +28,17 @@ class MavenModule(object):
 
     def __hash__(self):
         return hash(self.id)
+
+    @property
+    def packaging(self):
+        """
+        The pom packaging. Documentation says default is "jar".
+        :return: The packaging as a string or an empty string if the pom.xml is undefined.
+        """
+        if not self.pom:
+            return ""
+        else:
+            return parse_packaging_from_project_node(self.pom.getroot())
 
     @property
     def parent(self):

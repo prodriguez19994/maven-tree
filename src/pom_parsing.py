@@ -111,6 +111,18 @@ def parse_artifact_ids_from_node(node):
     return get_child_node_value(node, 'groupId'), get_child_node_value(node, 'artifactId')
 
 
+def parse_packaging_from_project_node(project_node):
+    """
+    Returns the packaging of the pom.
+    :param project_node: The xml parsed project node.
+    :return: The packaging as a string.
+    """
+    packaging = get_child_node_value(project_node, "packaging")
+    if not packaging:
+        packaging = "jar"
+    return packaging
+
+
 def get_child_node_value(parent_node, child_node_name):
     for child_node in parent_node.findall('mvn:%s' % (child_node_name, ), MAVEN_NAMESPACES):
         return child_node.text

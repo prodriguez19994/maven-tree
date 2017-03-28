@@ -1,19 +1,36 @@
+PARENT = "parent"
+MODULE = "module"
+DEPENDENCY = "dependency"
+PACKAGING_KEY_WORD = "packaging"
+LINK_KEY_WORD = "linktype"
+
+
 class NodesStore(object):
 
     def __init__(self, graph):
         self.graph = graph
-        self.maven_module_nodes = {}
 
-    def get_maven_module_node(self, maven_module):
-        if(maven_module in self.maven_module_nodes):
-            return self.maven_module_nodes[maven_module]
-        else:
+    def get_maven_module_node_id(self, maven_module):
+        """
+        Returns the node identifier for maven_module
+        :param maven_module: A MavenModule instance.
+        :return: The identifier (i.e. the (group_id, artifact_id) tuple)) or an empty string if not found.
+        """
+        # Getting the (id, attributes) tuple
+        nodes_data = self.graph.nodes(data = True)
+
+        matching_nodes_data = filter(lambda nd: nd[0] == maven_module.id, nodes_data)
+        if not matching_nodes_data:
             node_id = '%s:%s' % (maven_module.group_id, maven_module.artifact_id)
-            maven_module_node = self.graph.add_node(node_id)
-
-            self.maven_module_nodes[maven_module] = maven_module_node
-
-            return maven_module_node
+            self.graph.add_node(node_id, attr_dict = {PACKAGING_KEY_WORD: maven_module.packaging})
+            return node_id
+        elif len(matching_nodes_data) == 1:
+            maven_node_data = matching_nodes_data[0]
+            if not maven_node_data[1][PACKAGING_KEY_WORD]:
+                maven_node_data[1][PACKAGING_KEY_WORD] = maven_module.packaging
+            return maven_node_data[0]
+        else:
+            return ""
 
 
 class GraphBuilder(object):
@@ -24,20 +41,20 @@ class GraphBuilder(object):
 
     def build_graph(self, maven_modules):
         for maven_module in maven_modules:
-            maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
+            self.nodes_store.get_maven_module_node_id(maven_module)
             self.add_edges(maven_module)
 
         return self.graph
 
     @staticmethod
     def add_attribute(edge, value):
-        raw_old_types = edge.attributes().get("type", None)
+        raw_old_types = edge.attributes().get(LINK_KEY_WORD, None)
         if raw_old_types:
             old_types = set(raw_old_types.split(","))
         else:
             old_types = set()
         old_types.add(value)
-        edge["type"] = ",".join(old_types)
+        edge[LINK_KEY_WORD] = ",".join(old_types)
 
 
 class DependencyGraphBuilder(GraphBuilder):
@@ -46,13 +63,12 @@ class DependencyGraphBuilder(GraphBuilder):
         super(DependencyGraphBuilder, self).__init__(graph, nodes_store)
 
     def add_edges(self, maven_module):
-        maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
+        maven_module_node_id = self.nodes_store.get_maven_module_node_id(maven_module)
 
         for dependency_module in maven_module.dependencies:
-            dependency_module_node = self.nodes_store.get_maven_module_node(dependency_module)
-
-            edge = self.graph.add_edge(maven_module_node, dependency_module_node, directed = True)
-            GraphBuilder.add_attribute(edge, "dependency")
+            dependency_module_node = self.nodes_store.get_maven_module_node_id(dependency_module)
+            attributes = {LINK_KEY_WORD: DEPENDENCY}
+            self.graph.add_edge(maven_module_node_id, dependency_module_node, attr_dict = attributes)
 
 
 class ModuleGraphBuilder(GraphBuilder):
@@ -61,13 +77,12 @@ class ModuleGraphBuilder(GraphBuilder):
         super(ModuleGraphBuilder, self).__init__(graph, nodes_store)
 
     def add_edges(self, maven_module):
-        maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
+        maven_module_node_id = self.nodes_store.get_maven_module_node_id(maven_module)
 
         for sub_module in maven_module.sub_modules:
-            sub_module_node = self.nodes_store.get_maven_module_node(sub_module)
-
-            edge = self.graph.add_edge(maven_module_node, sub_module_node, directed = True)
-            GraphBuilder.add_attribute(edge, "module")
+            sub_module_node = self.nodes_store.get_maven_module_node_id(sub_module)
+            attributes = {LINK_KEY_WORD: MODULE}
+            self.graph.add_edge(maven_module_node_id, sub_module_node, attr_dict = attributes)
 
 
 class ParentEdgeBuilder(GraphBuilder):
@@ -79,8 +94,8 @@ class ParentEdgeBuilder(GraphBuilder):
         if not maven_module.parent:
             return
 
-        maven_module_node = self.nodes_store.get_maven_module_node(maven_module)
-        parent_module_node = self.nodes_store.get_maven_module_node(maven_module.parent)
+        maven_module_node_id = self.nodes_store.get_maven_module_node_id(maven_module)
+        parent_module_node_id = self.nodes_store.get_maven_module_node_id(maven_module.parent)
 
-        edge = self.graph.add_edge(maven_module_node, parent_module_node, directed = True)
-        GraphBuilder.add_attribute(edge, "parent")
+        attributes = {LINK_KEY_WORD: PARENT}
+        self.graph.add_edge(maven_module_node_id, parent_module_node_id, attr_dict = attributes)
