@@ -7,7 +7,7 @@ from pom_parsing import build_dependencies_from_pom_path, parse_sub_modules, par
 class MavenModule(object):
 
     def __init__(self, pom_path, group_id, artifact_id):
-        self.pom_path = pom_path
+        self.__pom_path = pom_path
         if pom_path:
             self.pom = xml.parse(pom_path)
         else:
@@ -28,6 +28,17 @@ class MavenModule(object):
 
     def __hash__(self):
         return hash(self.id)
+
+    @property
+    def pom_path(self):
+        """
+        Returns the pom.xml path.
+        :return: A pom.xml path or an empty string of the pom.xml is undefined.
+        """
+        if self.__pom_path:
+            return self.__pom_path
+        else:
+            return ""
 
     @property
     def packaging(self):
@@ -59,7 +70,7 @@ class MavenModule(object):
         :return: The set of dependencies.
         """
         tmp = map(lambda group_artifact_id: MavenModule(None, *group_artifact_id),
-                  build_dependencies_from_pom_path(self.pom_path))
+                  build_dependencies_from_pom_path(self.__pom_path))
         return set(tmp)
 
     @property
@@ -69,5 +80,5 @@ class MavenModule(object):
         :return: The set of modules.
         """
         tmp = map(lambda group_artifact_id: MavenModule(None, *group_artifact_id),
-                  parse_sub_modules(self.pom_path))
+                  parse_sub_modules(self.__pom_path))
         return set(tmp)

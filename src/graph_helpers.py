@@ -3,6 +3,7 @@ MODULE = "module"
 DEPENDENCY = "dependency"
 PACKAGING_KEY_WORD = "packaging"
 LINK_KEY_WORD = "linktype"
+POM_KEY_WORD = "pom"
 
 
 class NodesStore(object):
@@ -22,12 +23,16 @@ class NodesStore(object):
         matching_nodes_data = filter(lambda nd: nd[0] == maven_module.id, nodes_data)
         if not matching_nodes_data:
             node_id = '%s:%s' % (maven_module.group_id, maven_module.artifact_id)
-            self.graph.add_node(node_id, attr_dict = {PACKAGING_KEY_WORD: maven_module.packaging})
+            attributes = {PACKAGING_KEY_WORD: maven_module.packaging,
+                          POM_KEY_WORD: maven_module.pom_path}
+            self.graph.add_node(node_id, attr_dict=attributes)
             return node_id
         elif len(matching_nodes_data) == 1:
             maven_node_data = matching_nodes_data[0]
             if not maven_node_data[1][PACKAGING_KEY_WORD]:
                 maven_node_data[1][PACKAGING_KEY_WORD] = maven_module.packaging
+            if not maven_node_data[1][POM_KEY_WORD]:
+                maven_node_data[1][POM_KEY_WORD] = maven_module.pom_path
             return maven_node_data[0]
         else:
             return ""
