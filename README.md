@@ -10,8 +10,8 @@ I've been using Gephi (http://gephi.github.io/) to explore the graph.
 
 Hopefully it may help you.
 
-------------------------------------------------------------------------
 Requirements
+------------
 
 maven-tree require the networkx python module.
 
