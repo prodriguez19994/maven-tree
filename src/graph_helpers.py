@@ -32,12 +32,14 @@ class NodesStore(object):
             maven_node_data = matching_nodes_data[0]
             node_id = maven_node_data[0]
             attributes = maven_node_data[1]
-            if not(attributes[PACKAGING_KEY_WORD]) or not(attributes[POM_KEY_WORD]):
+            if not attributes[PACKAGING_KEY_WORD]:
                 attributes[PACKAGING_KEY_WORD] = maven_module.packaging
-                attributes[POM_KEY_WORD] = maven_module.pom_path
                 networkx.set_node_attributes(self.graph, PACKAGING_KEY_WORD,
                                              {node_id: maven_module.packaging})
-                networkx.set_node_attributes(self.graph, POM_KEY_WORD, {node_id: maven_module.pom_path})
+            if not attributes[POM_KEY_WORD]:
+                attributes[POM_KEY_WORD] = maven_module.pom_path
+                networkx.set_node_attributes(self.graph, POM_KEY_WORD,
+                                            {node_id: maven_module.pom_path})
             return node_id
         else:
             return ""
