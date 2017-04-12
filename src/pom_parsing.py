@@ -1,3 +1,4 @@
+import logging
 import os
 from xml.etree import ElementTree as xml
 
@@ -45,6 +46,11 @@ def parse_sub_modules(pom_path):
     pom = xml.parse(pom_path)
     for sub_module in pom.findall('mvn:modules/mvn:module', MAVEN_NAMESPACES):
         sub_pom_path = os.path.join(os.path.dirname(pom_path), sub_module.text, 'pom.xml')
+        # if not os.path.exists(sub_pom_path):
+        #     msg = "Could not read file \"%s\". (Request from file \"%s\".)" % (sub_pom_path, pom_path)
+        #     logging.critical(msg)
+        #     yield "", ""
+        # else:
         yield parse_maven_module_from_pom(sub_pom_path)
 
 
