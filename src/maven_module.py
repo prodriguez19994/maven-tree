@@ -1,7 +1,7 @@
 from xml.etree import ElementTree as xml
 
-from pom_parsing import build_dependencies_from_pom_path, parse_sub_modules, parse_parent_artifact_ids_from_project_node, \
-    parse_packaging_from_project_node
+from pom_parsing import parse_sub_modules, parse_parent_artifact_ids_from_project_node, \
+    parse_packaging_from_project_node, build_dependencies_meta_from_pom_path
 
 
 class MavenModule(object):
@@ -57,7 +57,7 @@ class MavenModule(object):
         Returns the maven parent project.
         :return: Returns the maven parent project as a MavenModule instance. Or None if no parent found.
         """
-        group_id, artifact_id =  parse_parent_artifact_ids_from_project_node(self.pom.getroot())
+        group_id, artifact_id = parse_parent_artifact_ids_from_project_node(self.pom.getroot())
         if group_id and artifact_id:
             return MavenModule(None, group_id, artifact_id)
         else:
@@ -66,12 +66,11 @@ class MavenModule(object):
     @property
     def dependencies(self):
         """
-        Returns the direct dependencies as a set of MavenModule instances.
-        :return: The set of dependencies.
+        Yields a (MavenModule, additional info dict) length-2 tuple for all the dependencies.
+        :yields: Length-2 tuples
         """
-        tmp = map(lambda group_artifact_id: MavenModule(None, *group_artifact_id),
-                  build_dependencies_from_pom_path(self.__pom_path))
-        return set(tmp)
+        for dep_group_id, dep_artifact_id, additional_info in build_dependencies_meta_from_pom_path(self.__pom_path):
+            yield MavenModule(None, dep_group_id, dep_artifact_id), additional_info
 
     @property
     def sub_modules(self):

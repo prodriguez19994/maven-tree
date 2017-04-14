@@ -58,16 +58,22 @@ def parse_sub_modules(pom_path):
 # import subprocess
 
 
-def build_dependencies_from_pom_path(pom_path):#, maven_home):
+def build_dependencies_meta_from_pom_path(pom_path):
+    """
+    For each dependency found in the pom, yields a length-3 tuple: first is the group_id,
+    then the artifact_id and last a dictionary with all the additional nodes in the dependcy node.
+    :param pom_path: The path to the pom (will be parsed as xml file).
+    :yields: group_id, artifact_id, additional_dict
+    """
     # Extracting all the dependencies from pom
     pom = xml.parse(pom_path)
     dependency_nodes = pom.findall('mvn:dependencies/mvn:dependency', MAVEN_NAMESPACES)
     for dependency_node in dependency_nodes:
-        dep_group_id, dep_artifact_id = parse_artifact_ids_from_node(dependency_node)
-        yield  dep_group_id, dep_artifact_id
+        dep_group_id, dep_artifact_id, additional_info = parse_additional_dependency_info_from_node(dependency_node)
+        yield dep_group_id, dep_artifact_id, additional_info
     # # These dependency nodes may lack versions, so we'll compute the effective pom for this
     # mvn = os.path.join(maven_home, "bin/mvn")
-    # mvn_settings = os.path.join(maven_home, "conf/settins.xml")
+    # mvn_settings = os.path.join(maven_home, "conf/settings.xml")
     # effective_pom_path = tempfile.NamedTemporaryFile(prefix = "mvn-graph-builder-", delete = True)
     # cmd_line = mvn, "--quiet", "--settings", mvn_settings, "-Doutput=" + effective_pom_path.name, "-f", pom_path
     # error_code = subprocess.call(cmd_line)
@@ -97,7 +103,7 @@ def parse_parent_artifact_ids_from_project_node(project_node):
     """
     Retrieves the (groupId, artifactId) from the project node.
     :param project_node: The parsed xml project node.
-    :return: (groupId, artifactId) of (None, None).
+    :return: (groupId, artifactId) or (None, None).
     """
     parent_nodes = project_node.findall('mvn:parent', MAVEN_NAMESPACES)
     assert(len(parent_nodes) in (0, 1))
@@ -106,6 +112,22 @@ def parse_parent_artifact_ids_from_project_node(project_node):
         if group_id and artifact_id:
             return group_id, artifact_id
     return None, None
+
+
+def parse_additional_dependency_info_from_node(dependency_node):
+    """
+    Returns a length-3 tuple: first is the group_id, then the artifact_id and last a dictionary
+    with all the additional nodes in the dependency node.
+    :param dependency_node: The xml node in which we will look for additional xml nodes.
+    :return: group_id, artifact_id, additional_dict
+    """
+    dep_group_id, dep_artifact_id = parse_artifact_ids_from_node(dependency_node)
+    additional_info = {}
+    for child_node in dependency_node.findall('*', MAVEN_NAMESPACES):
+        # Removing namespace
+        tag = "dependency." + child_node.tag.split('}', 1)[1]
+        additional_info[tag] = child_node.text
+    return dep_group_id, dep_artifact_id, additional_info
 
 
 def parse_artifact_ids_from_node(node):

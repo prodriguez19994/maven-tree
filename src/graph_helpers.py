@@ -6,6 +6,8 @@ DEPENDENCY = "dependency"
 PACKAGING_KEY_WORD = "packaging"
 LINK_KEY_WORD = "linktype"
 POM_KEY_WORD = "pom"
+GROUP_ID_KEY_WORD = "group_id"
+ARTIFACT_ID_KEY_WORD = "artifact_id"
 
 
 class NodesStore(object):
@@ -25,7 +27,9 @@ class NodesStore(object):
         if not matching_nodes_data:
             node_id = '%s:%s' % (maven_module.group_id, maven_module.artifact_id)
             attributes = {PACKAGING_KEY_WORD: maven_module.packaging,
-                          POM_KEY_WORD: maven_module.pom_path}
+                          POM_KEY_WORD: maven_module.pom_path,
+                          GROUP_ID_KEY_WORD: maven_module.group_id,
+                          ARTIFACT_ID_KEY_WORD: maven_module.artifact_id}
             self.graph.add_node(node_id, attr_dict=attributes)
             return node_id
         elif len(matching_nodes_data) == 1:
@@ -57,6 +61,7 @@ class GraphBuilder(object):
 
         return self.graph
 
+
 class DependencyGraphBuilder(GraphBuilder):
     def __init__(self, graph, nodes_store):
         super(DependencyGraphBuilder, self).__init__(graph, nodes_store)
@@ -64,9 +69,11 @@ class DependencyGraphBuilder(GraphBuilder):
     def add_edges(self, maven_module):
         maven_module_node_id = self.nodes_store.get_maven_module_node_id(maven_module)
 
-        for dependency_module in maven_module.dependencies:
+        for dependency_module, additional_info in maven_module.dependencies:
             dependency_module_node = self.nodes_store.get_maven_module_node_id(dependency_module)
             attributes = {LINK_KEY_WORD: DEPENDENCY}
+            for key, value in additional_info.items():
+                attributes[key] = value
             self.graph.add_edge(maven_module_node_id, dependency_module_node, attr_dict=attributes)
 
 
